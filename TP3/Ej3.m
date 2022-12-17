@@ -72,7 +72,7 @@ for R=100:100:rango_max
     Xi_range = zeros(Nexp,1);
 
     snr_teo(ii) = (fe_gain*max(abs(H_t)))^2*tau/No;
-    snr_teo_dB = 10*log10(snr_teo(ii));
+    snr_teo_dB(ii) = 10*log10(snr_teo(ii));
 %     fprintf("SNR_teorica(lineal): %2.2f \n", snr_teo);
 %     fprintf("SNR_teorica(dB): %2.2f \n", 10*log10(snr_teo));
 
@@ -139,7 +139,10 @@ semilogy(rangeq, precision2);grid on;title("Sin outliers")
 % legend('\tau = 2.5[nseg]','\tau = 5[nseg]','\tau = 7.5[nseg]');
 
 figure
-semilogy(rangeq, snr_comp_dB);grid on;title("SNR Computada")
+semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
+hold on
+semilogy(rangeq, snr_teo_dB);grid on;title("SNR Teórica")
+legend({'SNR Computada','SNR Teórica'},'Location', 'northeast')
 
 %Grafico potencia MF SNR
 % plot(rline, y_mf_accum); grid on;
