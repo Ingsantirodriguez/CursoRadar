@@ -98,6 +98,9 @@ for R=100:100:rango_max
 
     end
 
+    histogram(Xi_olf_range, 50), grid on; % Histogramas para cada rango
+    hold on
+
     %Lineas de tiempo y rango
     tline = 1/fs*(0:length(y_mf)-1);
     rline = tline*c/2;
@@ -128,6 +131,8 @@ for R=100:100:rango_max
     ii
 end
 %% Gráficos
+
+% Precisión con y sin outliers
 rangeq = [100:100:rango_max];
 % plot(rangeq, snr_comp_dB);grid on;
 figure
@@ -138,6 +143,7 @@ figure
 semilogy(rangeq, precision2);grid on;title("Sin outliers")
 % legend('\tau = 2.5[nseg]','\tau = 5[nseg]','\tau = 7.5[nseg]');
 
+% SNR Computada y Teórica
 figure
 semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
 hold on
