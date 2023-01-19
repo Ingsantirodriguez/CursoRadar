@@ -106,5 +106,5 @@ end
 rangeq = [100:100:rango_max];
 semilogy(rangeq, precision);grid on; % Se grafica la precisión a distintos rangos con el eje y en escala log
 hold on;
-xlabel('Rango[m]'); ylabel('Presicion');
+xlabel('Rango[m]'); ylabel('Desvio Estandar');
 legend('\tau = 2.5[nseg]','\tau = 5[nseg]','\tau = 7.5[nseg]');
