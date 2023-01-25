@@ -1,10 +1,10 @@
 clear all
-close all
+% close all
 clc
 %% Parámetros Generales
 
 Nos = 16;           %Tasa de sobremuestreo
-tau = 7.5e-9;       %Ancho del pulso [s]
+tau = 2.5e-9;       %Ancho del pulso [s]
 fs = (1/tau)*Nos;   %Frecuencia de muestreo [1/s]
 Po = 5e3;          %Potencia del pulso [W]
 Ao = sqrt(Po);      %Amplitud del pulso
@@ -33,7 +33,7 @@ GrLin = 10^(Gr/10); %Linealizo Gr
 
 ii = 1;
 
-for R=100:100:rango_max
+for R=1500:100:rango_max
 
     %Atenuacion
     alphaLin = sqrt((GtLin*GrLin*lambda^2*cross_s)/((4*pi)^3*R^4)); %Atenuación lineal
@@ -68,7 +68,7 @@ for R=100:100:rango_max
 
     %% Front-end
     y_mf_accum = 0;
-    Nexp = 500;
+    Nexp = 1000;
     Xi_range = zeros(Nexp,1);
 
     snr_teo(ii) = (fe_gain*max(abs(H_t)))^2*tau/No;
@@ -95,11 +95,14 @@ for R=100:100:rango_max
         max_index = I*rango_max/length(y_mf);
         Xi_range(Nexp) = max_index;
         Xi_olf_range = remove_outliers(Xi_range, R, 50);
+        
+        hold on
+        plot(y_mf_accum)
 
     end
 
-    histogram(Xi_olf_range, 50), grid on; % Histogramas para cada rango
-    hold on
+%     histogram(Xi_olf_range, 50), grid on; % Histogramas para cada rango
+%     hold on
 
     %Lineas de tiempo y rango
     tline = 1/fs*(0:length(y_mf)-1);
@@ -123,9 +126,9 @@ for R=100:100:rango_max
     if precision(ii)<1e-2
         precision(ii) = [];
     end
-    if precision2(ii)<1e-2
-        precision2(ii) = [];
-    end
+%     if precision2(ii)<1e-2
+%         precision2(ii) = [];
+%     end
 
     ii=ii+1;
     ii
@@ -135,20 +138,20 @@ end
 % Precisión con y sin outliers
 rangeq = [100:100:rango_max];
 % plot(rangeq, snr_comp_dB);grid on;
-figure
+% figure
+hold on;
 semilogy(rangeq, precision);grid on; % Se grafica la precisión a distintos rangos con el eje y en escala log
-% hold on;
 % xlabel('Rango[m]'); ylabel('Presicion');
-figure
-semilogy(rangeq, precision2);grid on;title("Sin outliers")
-% legend('\tau = 2.5[nseg]','\tau = 5[nseg]','\tau = 7.5[nseg]');
+% hold on
+% semilogy(rangeq, precision2);grid on;title("Sin outliers")
+legend('\tau = 7.5[nseg]', '\tau = 5[nseg]', '\tau = 2.5[nseg]');
 
 % SNR Computada y Teórica
-figure
-semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
-hold on
-semilogy(rangeq, snr_teo_dB);grid on;title("SNR Teórica")
-legend({'SNR Computada','SNR Teórica'},'Location', 'northeast')
+% figure
+% semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
+% hold on
+% semilogy(rangeq, snr_teo_dB);grid on;title("SNR Teórica")
+% legend({'SNR Computada','SNR Teórica'},'Location', 'northeast')
 
 %Grafico potencia MF SNR
 % plot(rline, y_mf_accum); grid on;

@@ -91,18 +91,21 @@ r_t = fe_output;            % Entrada del MF
 h_mf = conj(x_t(end:-1:1)); % Match Filter
 y_mf = conv(h_mf, r_t);     % Salida del detector
 
-%Gráfico en función del tiempo
-figure
-tline = 1/fs*(0:length(y_mf)-1);
-plot(tline,abs(y_mf)); grid on; title('Salida del MF');
-hold all; xlabel('tiempo [s]'); 
+% %Gráfico en función del tiempo
+% figure
+% tline = 1/fs*(0:length(y_mf)-1);
+% plot(tline,abs(y_mf)); grid on; title('Salida del MF');
+% hold all; xlabel('tiempo [s]'); 
+% 
+% rline = tline*c/2;
+% figure
+% plot(rline,abs(y_mf)); grid on; title('Salida del MF');
+% hold all; xlabel('rango [m]'); 
 
-rline = tline*c/2;
-figure
-plot(rline,abs(y_mf)); grid on; title('Salida del MF');
-hold all; xlabel('rango [m]'); 
-
-
+plot(real(H_t)); grid on; title('Fase de la señal recibida'); xlabel('muestras')
+hold on
+plot(imag(H_t)); grid on; title('Fase de la señal recibida'); xlabel('muestras')
+legend ('real', 'imaginaria')
 
 
 

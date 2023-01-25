@@ -4,7 +4,7 @@ clc
 %% Parámetros Generales
 
 Nos = 16;           %Tasa de sobremuestreo
-tau = 5e-9;         %Ancho del pulso [s]
+tau = 7.5e-9;         %Ancho del pulso [s]
 
 % for tau=2.5e-9:1e-9:7.5e-9
 
@@ -18,17 +18,17 @@ Gt = 35;            %Ganancia direccional de antena TX [dBi]
 Gr = 35;            %Ganancia direccional de antena RX [dBi]
 lambda = c/f0;      %Long. de onda [m]
 cross_s = 1;        %Radar cross section [m^2]
-R = 1000;           %Rango o distancia [m]
+R = 1250;           %Rango o distancia [m]
 rango_max = 2500;   %Rango máximo del radar [m]
 
 fe_gain = 5;
-input_voltage_noise_density = 0.4e-9; %[V/√Hz]
+input_voltage_noise_density = 0e-9; %[V/√Hz]
 No = input_voltage_noise_density^2; % PSD del ruido one-side
 noise_power = No*fs;
 
 %% Pulso
 
-x_t = [zeros(Nos,1); ones(round(Lpulse),1); zeros(Nos,1)]*Ao; %Senal transmitida
+x_t = [ones(round(Lpulse),1); zeros(Nos,1)]*Ao; %Senal transmitida
 
 %% Parámetros del Canal
 GtLin = 10^(Gt/10); %Linealizo Gt
@@ -36,11 +36,12 @@ GrLin = 10^(Gr/10); %Linealizo Gr
 
 Range_Res = c*tau/2
 
-Delta_R = 2;
+Delta_R = Range_Res;
 
 %Atenuacion
 alphaLin0 = sqrt((GtLin*GrLin*lambda^2*cross_s)/((4*pi)^3*R^4)); %Atenuación lineal
 alplhadBi0 = 20*log10(alphaLin0); %Atenuacion en dBi
+
 alphaLin1 = sqrt((GtLin*GrLin*lambda^2*cross_s)/((4*pi)^3*(R+Delta_R)^4)); %Atenuación lineal
 alplhadBi1 = 20*log10(alphaLin1); %Atenuacion en dBi
 
@@ -55,12 +56,14 @@ delayReal1 = delayDiscreto1/fs;
 
 %Phase change
 phase0 = exp(1j*2*pi*f0*delayReal0);   %Cambio de fase
+
 phase1 = exp(1j*2*pi*f0*delayReal1);   %Cambio de fase
 
 %% Modelado del Canal
 
 h_t0 = phase0.*alphaLin0.*[zeros(delayDiscreto0,1); x_t];   % Salida del canal
-h_t1 = phase1.*alphaLin1.*[zeros(delayDiscreto1,1); x_t];
+
+h_t1 = phase0.*alphaLin1.*[zeros(delayDiscreto1,1); x_t];
 
 %% Potencias
 
@@ -133,7 +136,7 @@ title('Potencia salida MF'); xlabel('Rango[m]');
 %% Gráficos
 
 % Precisión con y sin outliers
-rangeq = [50:50:rango_max];
+% rangeq = [50:50:rango_max];
 % plot(rangeq, snr_comp_dB);grid on;
 % figure
 % semilogy(rangeq, precision);grid on; % Se grafica la precisión a distintos rangos con el eje y en escala log
