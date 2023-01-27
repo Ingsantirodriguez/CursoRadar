@@ -24,7 +24,6 @@ No = input_voltage_noise_density^2; %noise one-side
 noise_power = No*fs;
 
 %% Pulso
-
 x_t = [ones(round(Lpulse),1); zeros(Nos,1)]*Ao; %Senal transmitida
 
 %% Parámetros del Canal
@@ -33,7 +32,7 @@ GrLin = 10^(Gr/10); %Linealizo Gr
 
 ii = 1;
 
-for R=1500:100:rango_max
+for R=100:100:rango_max
 
     %Atenuacion
     alphaLin = sqrt((GtLin*GrLin*lambda^2*cross_s)/((4*pi)^3*R^4)); %Atenuación lineal
@@ -73,8 +72,6 @@ for R=1500:100:rango_max
 
     snr_teo(ii) = (fe_gain*max(abs(H_t)))^2*tau/No;
     snr_teo_dB(ii) = 10*log10(snr_teo(ii));
-%     fprintf("SNR_teorica(lineal): %2.2f \n", snr_teo);
-%     fprintf("SNR_teorica(dB): %2.2f \n", 10*log10(snr_teo));
 
     for Nexp=1:Nexp
         noise = sqrt(noise_power/2)*randn(size(H_t)) + 1j.*sqrt(noise_power/2)*randn(size(H_t));
@@ -101,9 +98,6 @@ for R=1500:100:rango_max
 
     end
 
-%     histogram(Xi_olf_range, 50), grid on; % Histogramas para cada rango
-%     hold on
-
     %Lineas de tiempo y rango
     tline = 1/fs*(0:length(y_mf)-1);
     rline = tline*c/2;
@@ -115,20 +109,20 @@ for R=1500:100:rango_max
     else
         noise_floor = mean(y_mf_accum(1:i-1000));
     end
-    % noise_floor = mean(y_mf_accum(1:30000)); %para caso r=2000
-    snr_comp(ii) = (PRX_peak-noise_floor)/noise_floor;
-    snr_comp_dB(ii) = 10*log10(snr_comp(ii));
-%     fprintf("SNR_computada(lineal): %2.2f \n", snr_comp);
-%     fprintf("SNR_computada(dB): %2.2f \n", 10*log10(snr_comp));
-    precision(ii) = std(Xi_range);
-    precision2(ii) = std(Xi_olf_range);
 
-    if precision(ii)<1e-2
+    snr_comp(ii) = (PRX_peak-noise_floor)/noise_floor;  % Computada
+    snr_comp_dB(ii) = 10*log10(snr_comp(ii));
+
+    precision(ii) = std(Xi_range);  % Con outliers
+    precision2(ii) = std(Xi_olf_range); % Sin outliers
+
+    if precision(ii)<1e-2       % Con outliers
         precision(ii) = [];
     end
-%     if precision2(ii)<1e-2
-%         precision2(ii) = [];
-%     end
+    
+    if precision2(ii)<1e-2      % Sin outliers
+        precision2(ii) = [];
+    end
 
     ii=ii+1;
     ii
@@ -137,42 +131,16 @@ end
 
 % Precisión con y sin outliers
 rangeq = [100:100:rango_max];
-% plot(rangeq, snr_comp_dB);grid on;
-% figure
 hold on;
 semilogy(rangeq, precision);grid on; % Se grafica la precisión a distintos rangos con el eje y en escala log
-% xlabel('Rango[m]'); ylabel('Presicion');
+xlabel('Rango[m]'); ylabel('Presicion');
 % hold on
 % semilogy(rangeq, precision2);grid on;title("Sin outliers")
 legend('\tau = 7.5[nseg]', '\tau = 5[nseg]', '\tau = 2.5[nseg]');
 
 % SNR Computada y Teórica
-% figure
-% semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
-% hold on
-% semilogy(rangeq, snr_teo_dB);grid on;title("SNR Teórica")
-% legend({'SNR Computada','SNR Teórica'},'Location', 'northeast')
-
-%Grafico potencia MF SNR
-% plot(rline, y_mf_accum); grid on;
-% title('Potencia salida MF'); xlabel('Rango[m]');
-
-%Outliers
-% figure
-% plot(Xi_range); grid on; title('Outliers');
-% tline = 1/fs*(0:length(y_mf)-1);
-% Xi_olf_range = remove_outliers(Xi_range, R, 100);
-% Xi_time = tline(Xi_olf_range);
-
-%Resolución
-% resolucion_sim = tau/Nos
-% resolucion_real = std(Xi_time/1e-9)
-
-% figure
-% plot(Xi_olf_range); grid on; title('Outliers');
-% plot(Xi_time); 
-% hold all
-% plot(Xi_olf_range); grid on;
-
-% plot(rline, abs(y_mf).^2); grid on;
-% title('Potencia salida MF'); xlabel('Rango[m]');
+figure
+semilogy(rangeq, snr_comp_dB);grid on;title("SNR")
+hold on
+semilogy(rangeq, snr_teo_dB);grid on;title("SNR Teórica")
+legend({'SNR Computada','SNR Teórica'},'Location', 'northeast')

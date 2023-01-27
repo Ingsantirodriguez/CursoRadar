@@ -6,7 +6,7 @@ clc
 Nos = 16;           %Tasa de sobremuestreo
 tau = 5e-9;       %Ancho del pulso [s]
 fs = (1/tau)*Nos;   %Frecuencia de muestreo [1/s]
-Po = 1e3;          %Potencia del pulso [W]
+Po = 2.5e3;          %Potencia del pulso [W]
 Ao = sqrt(Po);      %Amplitud del pulso
 Lpulse = tau*fs;    %Longitud del pulso
 f0 = 77e9;          %Frec. de la portadora
@@ -19,12 +19,11 @@ R = 1500;           %Rango o distancia [m]
 rango_max = 2500;   %Rango máximo del radar [m]
 
 fe_gain = 5;
-input_voltage_noise_density = 1e-9; %[V/√Hz]
+input_voltage_noise_density = 0.8e-9; %[V/√Hz]
 No = input_voltage_noise_density^2; %noise one-side
 noise_power = No*fs;
 
 % Pulso
-
 x_t = [ones(round(Lpulse),1); zeros(Nos,1)]*Ao; %Senal transmitida
 
 % Parámetros del Canal
@@ -32,19 +31,19 @@ GtLin = 10^(Gt/10); %Linealizo Gt
 GrLin = 10^(Gr/10); %Linealizo Gr
 
 
-%Atenuacion
+% Atenuacion
 alphaLin = sqrt((GtLin*GrLin*lambda^2*cross_s)/((4*pi)^3*R^4)); %Atenuación lineal
 alplhadBi = 20*log10(alphaLin); %Atenuacion en dBi
 
-%Delay
+% Delay
 delay = 2*R/c;                      %Retardo temporal
 delayDiscreto = round(delay*fs);    %Se lo lleva a un número entero de muestras
 delayReal = delayDiscreto/fs;
 
-%Posición
+% Posición
 pos_real = delayDiscreto+Lpulse;
 
-%Phase change
+% Phase change
 phase = exp(1j*2*pi*f0*delayReal);   %Cambio de fase
 
 % Modelado del Canal
@@ -68,13 +67,14 @@ H_t = [h_t; zeros(zeros_left,1)];
 
 % Front-end
 y_mf_accum = 0;
-Nexp = 500;
+Nexp = 5000;
 
 COI = 1+ceil(pos_real/Nos); % Índice de la celda de interés
 vector_COI = zeros(Nexp,1); % Vector de valores de las COI
 vector_inter = zeros(Nexp,1); % Vector de valores de las demás celdas
 
 %% Simulacion
+ii = 0
 for Nexp=1:Nexp
     noise = sqrt(noise_power/2)*randn(size(H_t)) + 1j.*sqrt(noise_power/2)*randn(size(H_t));
     fe_output = fe_gain*H_t+noise;
@@ -84,11 +84,10 @@ for Nexp=1:Nexp
     y_mf = conv(h_mf, r_t);     % Salida del detector
     
     offset = mod(pos_real-1,Nos); % Factor que varía para encontrar la mitad de la celda
-%         plot(abs(y_mf));
     y_mf_celdas = y_mf(1+offset:Nos:end); % Vector que contiene los centros de las celdas
-%         hold on
-%         plot(abs(y_mf_celdas).^2);
-%         plot([1+offset:Nos:length(y_mf)], abs(y_mf_celdas), 'o');
+%     plot(abs(y_mf));
+%     hold on
+%     plot([1+offset:Nos:length(y_mf)], abs(y_mf_celdas), 'o');
     
     vector_COI(Nexp) = y_mf_celdas(COI);    % Le asigno el valor de la COI para este exp.
     
@@ -100,11 +99,14 @@ for Nexp=1:Nexp
     else
         vector_inter(Nexp,:) = aux;
     end
+    ii=ii+1
 end
 
 noise_samples = reshape(vector_inter, [], 1); %Convierto matriz en vector
 
 disp('Simulaciones Terminadas')
+
+% % Histogramas
 
 [counts, centers] = hist(abs(noise_samples), 100);
 figure
@@ -115,9 +117,8 @@ plot(centers,counts/length(vector_COI));grid on;
 
 %% Thresholds
 
-% PRX_peak = (max(abs(H_t))*fe_gain).^2;
-max_threshold = max(abs(vector_COI))*1.1;%(sqrt(PRX_peak) + 3.5*sqrt(noise_power/Nos)).^2; % aproximacion para pulso rectangular
-Nthrs = 500;
+max_threshold = max(abs(vector_COI))*1.1;
+Nthrs = 1000;
 thresholds = (max_threshold/Nthrs:max_threshold/Nthrs:max_threshold);
 fn_vector = zeros(Nthrs,1);
 fp_vector = zeros(Nthrs,1);
@@ -136,29 +137,27 @@ disp('Thresholds calculados')
 PD = zeros(length(thresholds));
 PFA = zeros(length(thresholds));
 
-ths_stats = zeros(4,length(thresholds)); % TPs, FNs, TNs, FPs = filas en ese orden ; Ths = columnas
+ths_stats = zeros(4,length(thresholds)); % TPs, FNs, FPs, TNs = filas en ese orden ; Ths = columnas
 
 for i=1:1:length(thresholds)
-    ths_stats(1,i) = sum(X(i,:)==1); % TPs para th i
-    ths_stats(2,i) = sum(X(i,:)==0); % FNs para th i
-    ths_stats(3,i) = sum(Y(i,:)==0); % TNs para th i
-    ths_stats(4,i) = sum(Y(i,:)==1); % FPs para th i
+    ths_stats(1,i) = sum(X(i,:)); % TPs para th i
+    ths_stats(2,i) = length(X(i,:))-ths_stats(1,i); % FNs para th i
+    ths_stats(3,i) = sum(Y(i,:)); % FPs para th i
+    ths_stats(4,i) = length(Y(i,:))-ths_stats(3,i); % TNs para th i
     
     PD(i) = (ths_stats(1,i))/length(vector_COI);
-    PFA(i) = (ths_stats(4,i))/length(noise_samples);
+    PFA(i) = (ths_stats(3,i))/length(noise_samples);
     i
 end
 
+% Gráficos ROC
+
 figure
-semilogy(PFA,PD);grid on;xlabel("PFA");ylabel("PD");title("ROC")
+semilogx(PFA,PD);grid on;xlabel("PFA");ylabel("PD");title("ROC");legend('250 [m]','500 [m]','1000 [m]','1500 [m]');
 
 snr_teo = (fe_gain*max(abs(H_t)))^2*tau/No;
 snr_teo_dB = 10*log10(snr_teo);
 
-%Lineas de tiempo y rango
-tline = 1/fs*(0:length(y_mf)-1);
-rline = tline*c/2;
-
-[Pd_teo,Pfa_teo] = rocsnr(snr_teo_dB,SignalType='NonFluctuatingNonCoherent')
+[Pd_teo,Pfa_teo] = rocsnr(snr_teo_dB,SignalType='NonFluctuatingNonCoherent');
 hold on
-semilogy(Pfa_teo,Pd_teo);grid on;xlabel("PFA");ylabel("PD");legend('ROC Computada', 'ROC Teórica');
+semilogx(Pfa_teo,Pd_teo);grid on;xlabel("PFA");ylabel("PD");legend('ROC Computada', 'ROC Teórica');
