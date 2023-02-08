@@ -1,5 +1,5 @@
 clear all
-close all
+% close all
 clc
 %% Parámetros Generales
 
@@ -15,7 +15,7 @@ Gt = 35;            %Ganancia direccional de antena TX [dBi]
 Gr = 35;            %Ganancia direccional de antena RX [dBi]
 lambda = c/f0;      %Long. de onda [m]
 cross_s = 1;        %Radar cross section [m^2]
-R = 1500;           %Rango o distancia [m]
+R = 1100;           %Rango o distancia [m]
 rango_max = 2500;   %Rango máximo del radar [m]
 
 fe_gain = 5;
@@ -67,7 +67,7 @@ H_t = [h_t; zeros(zeros_left,1)];
 
 % Front-end
 y_mf_accum = 0;
-Nexp = 5000;
+Nexp = 500;
 
 COI = 1+ceil(pos_real/Nos); % Índice de la celda de interés
 vector_COI = zeros(Nexp,1); % Vector de valores de las COI
@@ -118,7 +118,7 @@ plot(centers,counts/length(vector_COI));grid on;
 %% Thresholds
 
 max_threshold = max(abs(vector_COI))*1.1;
-Nthrs = 1000;
+Nthrs = 500;
 thresholds = (max_threshold/Nthrs:max_threshold/Nthrs:max_threshold);
 fn_vector = zeros(Nthrs,1);
 fp_vector = zeros(Nthrs,1);
