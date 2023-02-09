@@ -6,33 +6,33 @@ clc
 PTX = 1e-3*10^(15/10);  % Potencia transmitida [W], Aparecen muchos outliers si se baja mucho
 chirp_bw = 2e9;         % Ancho de banda del chirp
 max_range = 300;        % Rango máximo
-c = 3e8;
-Twait = 2*max_range/c;
+c = 3e8;                % Velocidad de la luz
+Twait = 2*max_range/c;  % Tiempo de espera a un target r = r_max
 q_elect = 1.6e-19;      % Carga del electrón, para calcular ruido
 Tmeas = 2.5e-6;         % Tiempo de medición
 Tmod = Tmeas+Twait;     % Tiempo de modulación
 chirp_slope = chirp_bw/Tmod;    % Pendiente del chirp
 
 % Parámetros del canal
-range = 200;                %m
+range = 200;                % [m]
 ARX=pi*(2.5e-2/2)^2;        % Apertura de 1in de diametro
 rho = 0.1;                  % Reflectividad
 lambda0 = 1550e-9;          % Ancho de banda inicial [m]
 omega0 = 2*pi*c/lambda0;    % Frecuencia inicial
-RPD = 0.7;                  % A/W Responsitividad del diodo
+RPD = 0.7;                  % A/W Responsitividad del diodo (para calcular ruido)
 
 % Muestreo
-NOS = 4;
-fs=NOS*chirp_bw;          % Frec. de muestreo de Matlab
-Ncells = ceil(fs*Tmeas);
+NOS = 4;                    % Sobremuestreo para gráficos con más detalle
+fs=NOS*chirp_bw;            % Frec. de muestreo de Matlab
+Ncells = ceil(fs*Tmeas);    % Número de celdas de la FFT (para threshold y CFAR)
 fs=Ncells/Tmeas;        % Frecuencia de muestreo como numero entero  
 Ts = 1/fs;              % Período de muestreo
 
 %% Transmisor
-Lsim = ceil(Tmod*fs);                       % Largo de la sim.
-tline = Ts.*(0:Lsim-1)';                    % Linea de tiempo de modulación
+Lsim = ceil(Tmod*fs);                       % Largo de la sim. en muestras
+tline = Ts.*(0:Lsim-1)';                    % Linea de tiempo de modulación (Lsim-1 es para que tengan la misma longitud los 2)
 insta_freq = chirp_slope.*tline;            % Frecuencia instantánea
-insta_phase = 2*pi*cumsum(insta_freq).*Ts;  % Fase instantánea
+insta_phase = 2*pi*cumsum(insta_freq).*Ts;  % Fase instantánea !Ver porqué no usa exponencial
 chirp_tx = exp(1j*insta_phase);             % Chirp unitario
 
 s_t = sqrt(PTX).*chirp_tx;                  % Señal transmitida
@@ -43,7 +43,7 @@ delay_samples = round(tau*fs);
 real_tau = delay_samples*Ts;
 real_range = real_tau*c/2;    % Rango real
 
-power_gain = rho*ARX/(4*pi*range.^2);       % Potencia
+power_gain = rho*ARX/(4*pi*range.^2);       % Potencia (ganancia menor a 1 = atenuación)
 atten = sqrt(power_gain);                   % Atenuación
 delta_phase = 2*pi*c/(lambda0*real_tau);    % Cambio de fase
 
@@ -55,9 +55,10 @@ hold all
 plot(tline, real(ch_out));
 
 %% Receptor
-wait_samples = ceil(Twait*fs);
+wait_samples = ceil(Twait*fs);  % Twait en muestras
 detector_out_noiseless = conj(ch_out.*conj(chirp_tx));  % Salida del detector (mixer), se conjuga todo porque sino da frecuencias negativas
 dsp_input_noiseless = detector_out_noiseless(1+wait_samples:end);   % Salida del detector sin Twait
+
 noise_power = q_elect/RPD * fs;     % Potencia del ruido
 
 prx_measured = mean(abs(dsp_input_noiseless).^2);   % Potencia medida de señal recibida
@@ -69,7 +70,8 @@ Ncells = ceil(fs*Tmeas);    % numero de bines/celdas de la FFT minimo | Cuántas
 FFT_NOS = 16;                % Sobremuestreo de la FFT, para poder medir precisión, usar valor mayor a 8 al medir precisión
 NFFT = FFT_NOS*Ncells;      % Tamaño de la transformada
 fvec = (0:NFFT-1)*(fs/NFFT);    % Vector de frecuencia, la cantidad de frecuencias es el tamaño de la transformada, el paso de frecuencia es fs/NFFT
-
+                                % fs es el valor máx de la FFT, entonces el
+                                % paso es fs/NFFT
 fbeat = chirp_slope*2*real_range/c;     % Frecuencia teórica del tono resultante
 cell_of_interest = round(fbeat*Tmeas);  % Celda de interés = fbeat/(1/Tmeas)
 % total_cells = fs*Tmeas;   % El ancho de cada celda es 1/Tmeas

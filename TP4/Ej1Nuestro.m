@@ -1,5 +1,5 @@
 clear all
-close all
+% close all
 clc
 
 %%
@@ -8,13 +8,13 @@ chirp_bw = 2e9;         % Ancho de banda del chirp
 max_range = 300;        % Rango máximo
 c = 3e8;
 Twait = 2*max_range/c;
-q_elect = 1.6e-19;      % Carga del electrón, para calcular ruido
+q_elect = 0e-19;      % Carga del electrón, para calcular ruido
 Tmeas = 2.5e-6;         % Tiempo de medición
 Tmod = Tmeas+Twait;     % Tiempo de modulación
 chirp_slope = chirp_bw/Tmod;    % Pendiente del chirp
 
 % Parámetros del canal
-range = 300;            %m
+range = 250;            %m
 ARX=pi*(2.5e-2/2)^2;    % Apertura de 1in de diametro
 rho = 0.1;              % Reflectividad
 lambda0=1550e-9; % m
@@ -62,36 +62,52 @@ ch_out = atten.*[zeros(delay_samples,1); s_t(1:end-delay_samples)].*exp(-1j*delt
 
 %% Receptor
 wait_samples = ceil(Twait*fs);
-mixer = (ch_out.*conj(chirp_tx)); % Salida del detector (conv.) con delay
+mixer = conj(ch_out.*conj(chirp_tx)); % Salida del detector (conv.) con delay
+mixer_v = mixer(1+wait_samples:end);
+ch_out_v = ch_out(1+wait_samples:end);
 
 %Comprobación que se tiene ganancia unitaria
 % figure
-% plot(real(mixer)); title('Salida del mixer'); grid on; % Tono
-% hold on
-% plot(abs(ch_out)); title('Salida del canal'); grid on;
+% plot(abs(mixer_v).^2); title('Salida del mixer'); grid on;
+% figure
+% plot(abs(ch_out_v).^2); title('Salida del canal'); grid on;
 
-max2 = max(abs(mixer));
-% [max1,I1] = max(abs(ch_out));
+max2 = max(abs(mixer_v).^2);
+[max1,I1] = max(abs(ch_out_v).^2);
 
 %Adicion del ruido
 noise_power = q_elect/RPD*fs;     % Potencia del ruido
 noise = sqrt(noise_power/2).*(randn(size(ch_out))+1j.*randn(size(ch_out))); % Señal de ruido
+noise_v = noise(1+wait_samples:end);
+fe_output = mixer_v + noise_v; %Salida del detector con ruido
 
-fe_output = mixer + noise; %Salida del detector con ruido
 % figure
-% plot(real(fe_output));
-fe_output_sin_delay = fe_output(1+wait_samples:end);   % Salida del detector con ruido sin delay
+% plot(real(fe_output));grid on
+% hold on
+% plot(real(mixer_v));legend('Señal con ruido', 'Señal sin ruido')
 
-% Espectro en frecuencia
+% Matched Filter FFT
 
 Ncells = ceil(fs*Tmeas);    % numero de bines de la FFT minimo
-FFT_NOS = 2;                % Sobremuestreo de la FFT
+FFT_NOS = 32;               % Sobremuestreo de la FFT
 NFFT = FFT_NOS*Ncells;
-fvec = (0:NFFT-1)*(fs/NFFT); % Vector 
+fvec = (0:NFFT-1)*(fs/NFFT);            % Vector de frecuencia
+max_range_FFT = fs*c/(chirp_slope*2);   % Máximo rango que puede ser representado por la FFT
+rvec = (0:NFFT-1)*(max_range_FFT/NFFT); % Vector de rango
 
-fbeat = chirp_slope*2*real_range/c;     % Frecuencia del tono resultante
-theo_max_pos = round(fbeat/fs*NFFT)+1;
-cell_of_interest = round(fbeat*Tmeas);  % Celda de interés
-total_cells = fs*Tmeas;
-fft_dec_phase = mod(theo_max_pos-1,FFT_NOS);
-fvec_dec = fvec(1+fft_dec_phase:FFT_NOS:end);
+y_mf = abs(fft(fe_output, NFFT)).^2;
+
+hold on
+plot(fvec/1e6, y_mf);grid on;title('Salida FFT');xlabel('Frecuencia [MHz]');ylabel('Potencia')
+% figure
+% plot(rvec, y_mf);grid on;title('Salida FFT');xlabel('Rango [m]');ylabel('Potencia')
+
+[~,fbeat_meas] = max(y_mf);
+fbeat_meas = fbeat_meas*(fs/NFFT);  % Fbeat simulado
+range_meas = fbeat_meas*c/(chirp_slope*2)  % Rango medido  
+fbeat = chirp_slope*2*real_range/c;     % Frecuencia teórica del tono resultante
+
+% cell_of_interest = round(fbeat*Tmeas);  % Celda de interés
+% total_cells = fs*Tmeas;
+% fft_dec_phase = mod(theo_max_pos-1,FFT_NOS);
+% fvec_dec = fvec(1+fft_dec_phase:FFT_NOS:end);
