@@ -14,7 +14,7 @@ Tmod = Tmeas+Twait;             % Tiempo de modulación
 chirp_slope = chirp_bw/Tmod;    % Pendiente del chirp
 
 % Parámetros del canal
-range = 300;            %m
+range = 200;            %m
 ARX=pi*(2.5e-2/2)^2;    % Apertura de 1in de diametro
 rho = 0.1;              % Reflectividad
 lambda0=1550e-9;        % m
@@ -75,7 +75,7 @@ fvec_dec = fvec(1+fft_dec_offset:FFT_NOS:end);   % Vector de frecuencia decimado
 
 % Experimentos
 noise_power = q_elect/RPD*fs;     % Potencia del ruido
-Nexp = 2000;
+Nexp = 1000;
 vector_COI = zeros(Nexp,1); % Vector de valores de las COI
 vector_inter = zeros(Nexp,1); % Vector de valores de las demás celdas (ruido)
 t=0;
@@ -109,7 +109,7 @@ for i=1:Nexp
 end
 
 noise_samples = reshape(vector_inter, [], 1); %Convierto matriz en vector
-noise_samples = noise_samples(1:length(noise_samples)/10); % Recorta
+noise_samples = noise_samples(1:length(noise_samples)/5); % Recorta
 % vector de ruido para agilizar los cálculos
 mean(noise_samples)
 
@@ -151,7 +151,7 @@ for i=1:1:length(thresholds)
 end
 
 %% Gráficos
-range = 150;
+range = 200;
 power_gain = rho*ARX/(4*pi*range.^2);
 prx_theo = PTX*power_gain;              % Potencia teórica (power gain es atenuación)
 theo_snr = prx_theo*Tmeas/(q_elect/RPD);
@@ -160,7 +160,7 @@ theo_snr_dB = 10*log10(theo_snr);
 [Pd_teo,Pfa_teo] = rocsnr(theo_snr_dB,SignalType='NonFluctuatingNonCoherent');
 % figure
 hold on
-semilogx(Pfa_teo,Pd_teo);grid on;xlabel("PFA");ylabel("PD");title("ROC");   % ROC computada
+semilogx(Pfa_teo,Pd_teo);grid on;xlabel("PFA");ylabel("PD");title("ROC");xlim([2.5e-7 1])   % ROC computada
 
 % hold on
 % semilogx(PFA,PD);grid on;xlabel("PFA");ylabel("PD");

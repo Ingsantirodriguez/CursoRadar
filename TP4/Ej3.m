@@ -9,7 +9,7 @@ max_range = 350;        % Rango máximo
 c = 3e8;
 Twait = 2*max_range/c;
 q_elect = 1.6e-19;      % Carga del electrón, para calcular ruido
-Tmeas = 2.5e-6;         % Tiempo de medición
+Tmeas = 3.5e-6;         % Tiempo de medición
 Tmod = Tmeas+Twait;     % Tiempo de modulación
 chirp_slope = chirp_bw/Tmod;    % Pendiente del chirp
 
@@ -37,12 +37,12 @@ chirp_tx = exp(1j*insta_phase);             % Chirp unitario
 
 s_t = sqrt(PTX).*chirp_tx;                  % Señal transmitida
 j = 1;
-start = 200;
+start = 50;
 step = 25;
-theo_snr = zeros(length(start:step:max_range));
-theo_snr_dB = zeros(length(start:step:max_range));
-snr_comp = zeros(length(start:step:max_range));
-snr_comp_dB = zeros(length(start:step:max_range));
+theo_snr = zeros(length(start:step:max_range),1);
+theo_snr_dB = zeros(length(start:step:max_range),1);
+snr_comp = zeros(length(start:step:max_range),1);
+snr_comp_dB = zeros(length(start:step:max_range),1);
 for range=start:step:max_range
     j
     %% Canal
@@ -97,7 +97,7 @@ for range=start:step:max_range
             y_mf_accum = y_mf_accum+y_mf/Nexp;
         end
 
-        i
+%         i
 
     end
 %     hold on
@@ -120,9 +120,9 @@ end
 % Gráficos
 
 rline_std = (start:step:max_range);
-figure
-semilogy(rline_std,theo_snr_dB);grid on;title('SNR en función del rango')
-xlabel('Rango [m]');
+% figure
 hold on
-semilogy(rline_std,snr_comp_dB);
-fbeat = chirp_slope*2*real_range/c;
+semilogy(rline_std,theo_snr_dB);grid on;
+xlabel('Rango [m]');
+% semilogy(rline_std,snr_comp_dB);
+% fbeat = chirp_slope*2*real_range/c;
