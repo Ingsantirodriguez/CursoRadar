@@ -3,7 +3,7 @@ clear all
 clc
 
 %%
-PTX = 1e-3*10^(10/10);  % Potencia transmitida [W] 15 dBm
+PTX = 1e-3*10^(15/10);  % Potencia transmitida [W] 15 dBm
 chirp_bw = 2e9;         % Ancho de banda del chirp
 max_range = 350;        % Rango máximo
 c = 3e8;
@@ -37,9 +37,14 @@ chirp_tx = exp(1j*insta_phase);             % Chirp unitario
 
 s_t = sqrt(PTX).*chirp_tx;                  % Señal transmitida
 j = 1;
-start = 50;
+start = 200;
 step = 25;
+theo_snr = zeros(length(start:step:max_range));
+theo_snr_dB = zeros(length(start:step:max_range));
+snr_comp = zeros(length(start:step:max_range));
+snr_comp_dB = zeros(length(start:step:max_range));
 for range=start:step:max_range
+    j
     %% Canal
     tau = 2*range/c;              % Delay del canal
     delay_samples = round(tau*fs);
@@ -85,50 +90,39 @@ for range=start:step:max_range
         fe_output = mixer_v + noise_v; %Salida del detector con ruido
 
         y_mf = abs(fft(fe_output, NFFT)).^2;
-        [~,I] = max(y_mf);
-        f_vals(i) = I*(fs/NFFT);  % Fbeat simulado
-        r_vals_ol(i) = f_vals(i)*c/(chirp_slope*2);  % Rango medido
 
-        r_vals_sol = remove_outliers(r_vals_ol, range, 1);
+        if i==1
+            y_mf_accum = y_mf/Nexp;
+        else
+            y_mf_accum = y_mf_accum+y_mf/Nexp;
+        end
 
-        i;
+        i
 
     end
+%     hold on
+%     plot(y_mf_accum);grid on
 
-    % frec_std = std(f_vals);
-    % range_std = std(r_vals);
-    range_err = r_vals_ol-real_range;
-    range_err_sol = r_vals_sol-real_range;
-    range_std(j) = std(range_err);
-    range_std_sol(j) = std(range_err_sol);
+    % SNR Teórica
+    prx_theo = PTX*power_gain;                  % Valor de la potencia recibida (teórico)
+    theo_snr(j) = prx_theo*Tmeas/(q_elect/RPD); % SNR Teórica
+    theo_snr_dB(j) = 10*log10(theo_snr(j));     % SNR Teórica [dB]
 
-%     figure
-%     histogram(range_err,100);grid on;title('Con Outliers');
-% 
-%     figure
-%     histogram(range_err_sol,100);grid on;title('Sin Outliers');
+    % SNR Computada
+    [max_val,max_pos] = max(y_mf_accum);  % Valor e índice del pico de la señal
+    mean_noise = mean(y_mf_accum(max_pos+1000:end));    % Media del ruido
+    snr_comp(j) = (max_val-mean_noise)/mean_noise; % Cálculo de SNR
+    snr_comp_dB(j) = 10*log10(snr_comp(j));    % SNR logarítmico
 
-    j = j+1
+    j = j+1;
 end
 
-% figure
-% histogram(range_err,100);grid on;title('Con Outliers');
-% 
-% figure
-% histogram(range_err_sol,100);grid on;title('Sin Outliers');
-rline_std = (start:step:max_range);
-hold on
-semilogy(rline_std,range_std_sol);grid on;title('Precisión sin outliers')
-ylabel('Desvío estándar');xlabel('Rango [m]');
-fbeat = chirp_slope*2*real_range/c;
-% cell_of_interest = round(fbeat*Tmeas);  % Celda de interés
-% total_cells = fs*Tmeas;
-% fft_dec_phase = mod(theo_max_pos-1,FFT_NOS);
-% fvec_dec = fvec(1+fft_dec_phase:FFT_NOS:end);
+% Gráficos
 
-%%
-PTX = 1e-3*10^(25/10);
-range = 150;
-prx_theo = PTX*power_gain;
-theo_snr = prx_theo*Tmeas/(q_elect/RPD)
-theo_snr_dB = 10*log10(theo_snr)
+rline_std = (start:step:max_range);
+figure
+semilogy(rline_std,theo_snr_dB);grid on;title('SNR en función del rango')
+xlabel('Rango [m]');
+hold on
+semilogy(rline_std,snr_comp_dB);
+fbeat = chirp_slope*2*real_range/c;
